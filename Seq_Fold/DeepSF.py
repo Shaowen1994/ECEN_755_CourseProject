@@ -18,10 +18,10 @@ opt='nadam'
 filtsize='6_10'
 hidden_num=500
 ktop_node=30
-out_epoch=50
+out_epoch=100
 in_epoch=3
-datadir = '../Data/Datasets/For_Seq_Stru/'
-outputdir = '../Model/Seq_Fold/'
+datadir = '../Data/Datasets/For_Seq_Stru'
+outputdir = '../Model/Seq_Fold/withoutSS'
 
 train_datafile=datadir+'/Traindata.list'
 val_datafile=datadir+'/validation.list'

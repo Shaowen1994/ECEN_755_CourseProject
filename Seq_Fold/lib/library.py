@@ -13,11 +13,11 @@ from keras.layers.normalization import BatchNormalization
 
 GLOBAL_PATH='/scratch/user/shaowen1994/Assignments/ECEN766_CourseProject';
 
-feature_dir_global =GLOBAL_PATH+'/datasets/features/Feature_aa_ss_sa/'
+feature_dir_global =GLOBAL_PATH+'/Data/Datasets/For_Seq_Stru/features'
 
 
 if not os.path.exists(feature_dir_global):
-  print "Cuoldn't find folder ",feature_dir_global, " please setting it in the script ./lib/library.py"
+  print("Couldn't find folder ",feature_dir_global, " please setting it in the script ./lib/library.py")
   exit(-1)
 
 def chkdirs(fn):
@@ -38,7 +38,6 @@ def import_DLS2FSVM(filename, delimiter='\t', delimiter2=' ',comment='>',skiprow
        dataset = file.read().splitlines()[start:end]
     else:
        dataset = file.read().splitlines()
-    #print dataset
     newdata = []
     for i in range(0,len(dataset)):
         line = dataset[i]
@@ -92,79 +91,80 @@ def _conv_bn_relu1D(nb_filter, nb_row, subsample,use_bias=True):
     return f
 
 
-def load_train_test_data_padding_with_interval(CV_dir, Interval,prefix,ktop_node,seq_end,train=True,ss=False):
+def load_train_test_data_padding_with_interval(CV_dir, Interval,prefix,ktop_node,seq_end,train=True):
+
+    feature_dim = 20
+
     try:
         # read python dict back from the file
         import pickle
         if train:
             pickle_file ="%s/Traindata_padding_interval_%i_%s.pkl" % (CV_dir,Interval,prefix) 
-            print "#loading training data %s ..." % (pickle_file) 
+            print("#loading training data %s ..." % (pickle_file)) 
         else:
             pickle_file ="%s/validation_padding_interval_%i_%s.pkl" % (CV_dir,Interval,prefix)  
-            print "#loading validation data %s ..." % (pickle_file)
+            print("#loading validation data %s ..." % (pickle_file))
         
         pkl_file = open(pickle_file, 'rb')
         data_all_dict = pickle.load(pkl_file)
         # list(data_all_dict.keys()).
         for key in data_all_dict.keys():
-            print "keys: ", key, " shape: ", data_all_dict[key].shape
+            print("keys: ", key, " shape: ", data_all_dict[key].shape)
         pkl_file.close()    
     except:
         import pickle
         ### loading training data
         if train:
             data_file ="%s/Traindata.list" % (CV_dir)  
-            print "##loading training file set instead from %s ..." % (data_file)
+            print("##loading training file set instead from %s ..." % (data_file))
         else:
             data_file ="%s/validation.list" % (CV_dir)  
-            print "##loading testing file set instead %s ..." % (data_file)
+            print("##loading testing file set instead %s ..." % (data_file))
         
         feature_dir = feature_dir_global
         
         if train:
-            print "#loading training data..."
+            print("#loading training data...")
             pickle_file ="%s/Traindata_padding_interval_%i_%s.pkl" % (CV_dir,Interval,prefix)  
         else:
-            print "#loading validation data..."
+            print("#loading validation data...")
             pickle_file ="%s/validation_padding_interval_%i_%s.pkl" % (CV_dir,Interval,prefix)  
         
         
         sequence_file=open(data_file,'r').readlines() 
         data_all_dict = dict()
-        for i in xrange(len(sequence_file)):
+        for i in range(len(sequence_file)):
             if sequence_file[i].find('Length') >0 :
-                print "Skip line ",sequence_file[i]
+                print("Skip line ",sequence_file[i])
                 continue
             pdb_name = sequence_file[i].split('\t')[0]
-            #print "Processing ",pdb_name
             
             if pdb_name.find('.')!=-1: # found
                 pdb_name = pdb_name.replace(".", "_")
-            featurefile = feature_dir + '/' + pdb_name + '.fea_aa_ss'
+            featurefile = feature_dir + '/' + pdb_name + '.fea_aa'
             if not os.path.isfile(featurefile):
-                        #print "feature file not exists: ",featurefile, " pass!"
                         continue         
                             
             featuredata = import_DLS2FSVM(featurefile)
             
-            fea_len = (featuredata.shape[1]-1)/(20+3)
+            fea_len = int((featuredata.shape[1]-1)/(feature_dim))
             train_labels = featuredata[:,0]
             train_feature = featuredata[:,1:]
-            train_feature_seq = train_feature.reshape(fea_len,23)
+              
+            #print(featurefile)
+            #print(featuredata.shape)            
+
+            train_feature_seq = train_feature.reshape(fea_len,feature_dim )
             train_feature_aa = train_feature_seq[:,0:20]
-            train_feature_ss = train_feature_seq[:,20:23]
             ### reconstruct feature, each residue represent aa,ss
-            if ss:
-                featuredata_all = np.concatenate((train_feature_aa,train_feature_ss), axis=1)
-            else:
-                featuredata_all = train_feature_aa
+            featuredata_all = train_feature_aa
 
             featuredata_all = featuredata_all.reshape(1,featuredata_all.shape[0]*featuredata_all.shape[1])
             featuredata_all_tmp = np.concatenate((train_labels.reshape((1,1)),featuredata_all), axis=1)
             
             if fea_len <ktop_node: # suppose k-max = 30
                 fea_len = ktop_node
-                featuredata_all_new = np.zeros((featuredata_all_tmp.shape[0],ktop_node*(20+20+3+2)+1))
+                featuredata_all_new = np.zeros((featuredata_all_tmp.shape[0],ktop_node*(feature_dim)+1))
                 featuredata_all_new[:featuredata_all_tmp.shape[0],:featuredata_all_tmp.shape[1]] = featuredata_all_tmp
             else:
                 featuredata_all_new = featuredata_all_tmp
@@ -175,10 +175,9 @@ def load_train_test_data_padding_with_interval(CV_dir, Interval,prefix,ktop_node
                 if end_ran > seq_end:
                     end_ran = seq_end 
                 if fea_len >start_ran and   fea_len <= end_ran:
-                    featuredata_all_pad = np.zeros((featuredata_all_new.shape[0],end_ran*(20+3)+1))
+                    featuredata_all_pad = np.zeros((featuredata_all_new.shape[0],end_ran*(feature_dim)+1))
                     featuredata_all_pad[:featuredata_all_new.shape[0],:featuredata_all_new.shape[1]] = featuredata_all_new
                     
-                    #print "fea_len: ",fea_len
                     fea_len_new=end_ran
                     if fea_len_new in data_all_dict:
                         data_all_dict[fea_len_new].append(featuredata_all_pad)
@@ -187,34 +186,34 @@ def load_train_test_data_padding_with_interval(CV_dir, Interval,prefix,ktop_node
                         data_all_dict[fea_len_new].append(featuredata_all_pad)               
                 else:
                     continue
-        # list(data_all_dict.keys()).
+
         for key in data_all_dict.keys():
             myarray = np.asarray(data_all_dict[key])
             data_all_dict[key] = myarray.reshape(len(myarray),myarray.shape[2])
-            print "keys: ", key, " shape: ", data_all_dict[key].shape
+            print("keys: ", key, " shape: ", data_all_dict[key].shape)
         
         
-        print "Saving data  ",pickle_file
-        # write python dict to a file
-        #output = open(pickle_file, 'wb') # dont save, release space
-        #pickle.dump(data_all_dict, output)
-        #output.close()
+        print("Saving data  ",pickle_file)
     
     return data_all_dict
 
 
 def DLS2F_construct_withaa_complex_win_filter_layer_opt(win_array,ktop_node,output_dim,use_bias,hidden_type,nb_filters,nb_layers,opt,hidden_num):
-    ss_feature_num = 3
+    #ss_feature_num = 3
     aa_feature_num = 20
     ktop_node= ktop_node
-    print "Setting hidden models as ",hidden_type
-    print "Setting nb_filters as ",nb_filters
-    print "Setting nb_layers as ",nb_layers
-    print "Setting opt as ",opt
-    print "Setting win_array as ",win_array
-    print "Setting use_bias as ",use_bias
+
+    win_array = list(win_array)
+
+    print("Setting hidden models as ",hidden_type)
+    print("Setting nb_filters as ",nb_filters)
+    print("Setting nb_layers as ",nb_layers)
+    print("Setting opt as ",opt)
+    print("Setting win_array as ",win_array)
+    print("Setting use_bias as ",use_bias)
     ########################################## set up model
-    DLS2F_input_shape =(None,aa_feature_num+ss_feature_num)
+    #DLS2F_input_shape =(None,aa_feature_num+ss_feature_num)
+    DLS2F_input_shape =(None,aa_feature_num)
     filter_sizes=win_array
     DLS2F_input = Input(shape=DLS2F_input_shape)
     DLS2F_convs = []
@@ -241,7 +240,10 @@ def DLS2F_construct_withaa_complex_win_filter_layer_opt(win_array,ktop_node,outp
     return DLS2F_ResCNN
 
 
-def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_dict_padding,train_list,val_list,test_list,CV_dir,model_prefix,epoch_outside,epoch_inside,seq_end,win_array,use_bias,hidden_type,nb_filters,nb_layers,opt,hidden_num,ktop_node,ss=False):
+def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_dict_padding,train_list,val_list,test_list,CV_dir,model_prefix,epoch_outside,epoch_inside,seq_end,win_array,use_bias,hidden_type,nb_filters,nb_layers,opt,hidden_num,ktop_node):
+
+    feature_dim = 20
+
     start=0
     end=seq_end
     feature_dir = feature_dir_global
@@ -256,7 +258,7 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
             continue
         if key > end:
             continue
-        print '### Loading sequence length :', key
+        print('### Loading sequence length :', key)
         seq_len=key
         trainfeaturedata = data_all_dict_padding[key]
         train_labels = trainfeaturedata[:,0]
@@ -266,15 +268,14 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
             raise Exception("Wrong label?")
         
         if len(trainfeaturedata) < 1:
-            print "len(trainfeaturedata): ",len(trainfeaturedata)
+            print("len(trainfeaturedata): ",len(trainfeaturedata))
             continue
         
         if seq_len in testdata_all_dict_padding:
             testfeaturedata = testdata_all_dict_padding[seq_len]
-            #print "Loading test dataset "
         else:
             testfeaturedata = trainfeaturedata
-            print "\n\n##Warning: Setting training dataset as testing dataset \n\n"
+            print("\n\n##Warning: Setting training dataset as testing dataset \n\n")
         
         if len(testfeaturedata) < 1:
             testfeaturedata = trainfeaturedata
@@ -283,14 +284,10 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         test_feature = testfeaturedata[:,1:]    
         sequence_length = seq_len
         #processing train data
-        train_feature_seq = train_feature.reshape(train_feature.shape[0],sequence_length,23)
+        train_feature_seq = train_feature.reshape(train_feature.shape[0],sequence_length,feature_dim)
         train_feature_aa = train_feature_seq[:,:,0:20]
-        train_feature_ss = train_feature_seq[:,:,20:23]
-        
-        if ss:
-            train_featuredata_all = np.concatenate((train_feature_aa,train_feature_ss), axis=2)
-        else:
-            train_featuredata_all = train_feature_aa
+
+        train_featuredata_all = train_feature_aa
         train_targets = np.zeros((train_labels.shape[0], 420 ), dtype=int)
         for i in range(0, train_labels.shape[0]):
             train_targets[i][int(train_labels[i])] = 1
@@ -305,19 +302,15 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         else:
             Train_targets_keys[seq_len]=train_targets        
         #processing test data 
-        test_feature_seq = test_feature.reshape(test_feature.shape[0],sequence_length,23)
+        test_feature_seq = test_feature.reshape(test_feature.shape[0],sequence_length,feature_dim)
         test_feature_aa = test_feature_seq[:,:,0:20]
-        test_feature_ss = test_feature_seq[:,:,20:23]
-        if ss:
-            test_featuredata_all = np.concatenate((test_feature_aa,test_feature_ss), axis=2)
-        else:
-            test_featuredata_all = test_feature_aa
+        test_featuredata_all = test_feature_aa
         test_targets = np.zeros((test_labels.shape[0], 420 ), dtype=int)
         for i in range(0, test_labels.shape[0]):
             test_targets[i][int(test_labels[i])] = 1
         
         
-        print "Length: ",seq_len," ---> ",test_featuredata_all.shape[0]," testing seqs"
+        print("Length: ",seq_len," ---> ",test_featuredata_all.shape[0]," testing seqs")
         if test_featuredata_all.shape[0] > 20: # to speed up the training
               test_featuredata_all = test_featuredata_all[0:20,:]
               test_targets = test_targets[0:20,:]
@@ -335,31 +328,25 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
     Trainlist_data_keys = dict()
     Trainlist_targets_keys = dict()
     sequence_file=open(train_list,'r').readlines() 
-    for i in xrange(len(sequence_file)):
+    for i in range(len(sequence_file)):
         if sequence_file[i].find('Length') >0 :
-            print "Skip line ",sequence_file[i]
+            print("Skip line ",sequence_file[i])
             continue
         pdb_name = sequence_file[i].split('\t')[0]
-        #print "Processing ",pdb_name
-        featurefile = feature_dir + '/' + pdb_name + '.fea_aa_ss'
+        featurefile = feature_dir + '/' + pdb_name + '.fea_aa'
         if not os.path.isfile(featurefile):
-                    #print "feature file not exists: ",featurefile, " pass!"
                     continue         
         
         
         featuredata = import_DLS2FSVM(featurefile)
         
-        fea_len = (featuredata.shape[1]-1)/(20+3)
+        fea_len = int((featuredata.shape[1]-1)/(feature_dim))
         train_labels = featuredata[:,0]
         train_feature = featuredata[:,1:]
-        train_feature_seq = train_feature.reshape(fea_len,23)
+        train_feature_seq = train_feature.reshape(fea_len,feature_dim)
         train_feature_aa = train_feature_seq[:,0:20]
-        train_feature_ss = train_feature_seq[:,20:23]
-        
-        if ss:
-            featuredata_all_tmp = np.concatenate((train_feature_aa,train_feature_ss), axis=1)
-        else:
-            featuredata_all_tmp = train_feature_aa
+
+        featuredata_all_tmp = train_feature_aa
         
         if fea_len <ktop_node: # suppose k-max = ktop_node
             fea_len = ktop_node
@@ -368,7 +355,6 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         else:
             train_featuredata_all = featuredata_all_tmp
         
-        #print "train_featuredata_all: ",train_featuredata_all.shape
         train_targets = np.zeros((train_labels.shape[0], 420 ), dtype=int)
         for i in range(0, train_labels.shape[0]):
             train_targets[i][int(train_labels[i])] = 1
@@ -377,25 +363,25 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         
         
         if pdb_name in Trainlist_data_keys:
-            print "Duplicate pdb name %s in Train list " % pdb_name
+            print("Duplicate pdb name %s in Train list " % pdb_name)
         else:
             Trainlist_data_keys[pdb_name]=train_featuredata_all
         
         if pdb_name in Trainlist_targets_keys:
-            print "Duplicate pdb name %s in Train list " % pdb_name
+            print("Duplicate pdb name %s in Train list " % pdb_name)
         else:
             Trainlist_targets_keys[pdb_name]=train_targets
         
     Vallist_data_keys = dict()
     Vallist_targets_keys = dict()
     sequence_file=open(val_list,'r').readlines() 
-    for i in xrange(len(sequence_file)):
+    for i in range(len(sequence_file)):
         if sequence_file[i].find('Length') >0 :
-            print "Skip line ",sequence_file[i]
+            print("Skip line ",sequence_file[i])
             continue
         pdb_name = sequence_file[i].split('\t')[0]
         #print "Processing ",pdb_name
-        featurefile = feature_dir + '/' + pdb_name + '.fea_aa_ss'
+        featurefile = feature_dir + '/' + pdb_name + '.fea_aa'
         if not os.path.isfile(featurefile):
                     #print "feature file not exists: ",featurefile, " pass!"
                     continue         
@@ -403,17 +389,13 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         
         featuredata = import_DLS2FSVM(featurefile)
         
-        fea_len = (featuredata.shape[1]-1)/(20+3)
+        fea_len = int((featuredata.shape[1]-1)/(feature_dim))
         train_labels = featuredata[:,0]
         train_feature = featuredata[:,1:]
-        train_feature_seq = train_feature.reshape(fea_len,23)
+        train_feature_seq = train_feature.reshape(fea_len,feature_dim)
         train_feature_aa = train_feature_seq[:,0:20]
-        train_feature_ss = train_feature_seq[:,20:23]
-        
-        if ss:
-            featuredata_all_tmp = np.concatenate((train_feature_aa,train_feature_ss), axis=1)
-        else:
-            featuredata_all_tmp = train_feature_aa           
+
+        featuredata_all_tmp = train_feature_aa           
          
         if fea_len <ktop_node: # suppose k-max = ktop_node
             fea_len = ktop_node
@@ -428,12 +410,12 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         
         train_featuredata_all=train_featuredata_all.reshape(1,train_featuredata_all.shape[0],train_featuredata_all.shape[1])
         if pdb_name in Vallist_data_keys:
-            print "Duplicate pdb name %s in Val list " % pdb_name
+            print("Duplicate pdb name %s in Val list " % pdb_name)
         else:
             Vallist_data_keys[pdb_name]=train_featuredata_all
         
         if pdb_name in Vallist_targets_keys:
-            print "Duplicate pdb name %s in Val list " % pdb_name
+            print("Duplicate pdb name %s in Val list " % pdb_name)
         else:
             Vallist_targets_keys[pdb_name]=train_targets
 
@@ -441,13 +423,13 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
     Testlist_data_keys = dict()
     Testlist_targets_keys = dict()
     sequence_file=open(test_list,'r').readlines() 
-    for i in xrange(len(sequence_file)):
+    for i in range(len(sequence_file)):
         if sequence_file[i].find('Length') >0 :
-            print "Skip line ",sequence_file[i]
+            print("Skip line ",sequence_file[i])
             continue
         pdb_name = sequence_file[i].split('\t')[0]
         #print "Processing ",pdb_name
-        featurefile = feature_dir + '/' + pdb_name + '.fea_aa_ss'
+        featurefile = feature_dir + '/' + pdb_name + '.fea_aa'
         if not os.path.isfile(featurefile):
                     #print "feature file not exists: ",featurefile, " pass!"
                     continue         
@@ -455,19 +437,15 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         
         featuredata = import_DLS2FSVM(featurefile)
         
-        fea_len = (featuredata.shape[1]-1)/(20+3)
+        fea_len = int((featuredata.shape[1]-1)/(feature_dim))
         #if fea_len < 40: # since kmax right now is ktop_node
         #    continue
         train_labels = featuredata[:,0]
         train_feature = featuredata[:,1:]
-        train_feature_seq = train_feature.reshape(fea_len,23)
+        train_feature_seq = train_feature.reshape(fea_len,feature_dim)
         train_feature_aa = train_feature_seq[:,0:20]
-        train_feature_ss = train_feature_seq[:,20:23]
         
-        if ss:
-            featuredata_all_tmp = np.concatenate((train_feature_aa,train_feature_ss), axis=1)
-        else:
-            featuredata_all_tmp = train_feature_aa        
+        featuredata_all_tmp = train_feature_aa        
         
         if fea_len <ktop_node: # suppose k-max = ktop_node
             fea_len = ktop_node
@@ -483,12 +461,12 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         
         train_featuredata_all=train_featuredata_all.reshape(1,train_featuredata_all.shape[0],train_featuredata_all.shape[1])
         if pdb_name in Testlist_data_keys:
-            print "Duplicate pdb name %s in Test list " % pdb_name
+            print("Duplicate pdb name %s in Test list " % pdb_name)
         else:
             Testlist_data_keys[pdb_name]=train_featuredata_all
         
         if pdb_name in Testlist_targets_keys:
-            print "Duplicate pdb name %s in Test list " % pdb_name
+            print("Duplicate pdb name %s in Test list " % pdb_name)
         else:
             Testlist_targets_keys[pdb_name]=train_targets
             
@@ -500,7 +478,7 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
 
     
     if os.path.exists(model_out):
-        print "######## Loading existing model ",model_out;
+        print("######## Loading existing model ",model_out);
         # load json and create model
         json_file_model = open(model_out, 'r')
         loaded_model_json = json_file_model.read()
@@ -509,38 +487,38 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         print("######## Loaded model from disk")
         DLS2F_CNN = model_from_json(loaded_model_json, custom_objects={'K_max_pooling1d': K_max_pooling1d})        
     else:
-        print "######## Setting initial model";
+        print("######## Setting initial model");
         DLS2F_CNN = DLS2F_construct_withaa_complex_win_filter_layer_opt(win_array,ktop_node,420,use_bias,hidden_type,nb_filters,nb_layers,opt,hidden_num) # class 284 for class a 
     
     if os.path.exists(model_weight_out):
-        print "######## Loading existing weights ",model_weight_out;
+        print("######## Loading existing weights ",model_weight_out);
         DLS2F_CNN.load_weights(model_weight_out)
         DLS2F_CNN.compile(loss="categorical_crossentropy", metrics=['accuracy'], optimizer=opt)
     else:
-        print "######## Setting initial weights";
+        print("######## Setting initial weights");
         DLS2F_CNN.compile(loss="categorical_crossentropy", metrics=['accuracy'], optimizer=opt)
      
  
     train_acc_best = 0 
     val_acc_best = 0
-    print 'Loading existing val accuracy is %.5f' % (val_acc_best)   
+    print('Loading existing val accuracy is %.5f' % (val_acc_best))
     for epoch in range(0,epoch_outside):
-        print "\n############ Running epoch ", epoch 
+        print("\n############ Running epoch ", epoch)
     
         for key in data_all_dict_padding.keys():
             if key <start:
                 continue
             if key > end:
                 continue
-            print '### Loading sequence length :', key
+            print('### Loading sequence length :', key)
             seq_len=key
             
             train_featuredata_all=Train_data_keys[seq_len]
             train_targets=Train_targets_keys[seq_len]
             test_featuredata_all=Test_data_keys[seq_len]
             test_targets=Test_targets_keys[seq_len]
-            print "Train shape: ",train_featuredata_all.shape, " in outside epoch ", epoch 
-            print "Test shape: ",test_featuredata_all.shape, " in outside epoch ", epoch
+            print("Train shape: ",train_featuredata_all.shape, " in outside epoch ", epoch)
+            print("Test shape: ",test_featuredata_all.shape, " in outside epoch ", epoch)
             DLS2F_CNN.fit([train_featuredata_all], train_targets, batch_size=50,nb_epoch=epoch_inside,  validation_data=([test_featuredata_all], test_targets), verbose=1)
             # serialize model to JSON
             model_json = DLS2F_CNN.to_json()
@@ -568,9 +546,9 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         #pdb_name='d1np7a1'
         all_cases=0
         corrected=0
-        for i in xrange(len(sequence_file)):
+        for i in range(len(sequence_file)):
             if sequence_file[i].find('Length') >0 :
-                print "Skip line ",sequence_file[i]
+                print("Skip line ",sequence_file[i])
                 continue
             pdb_name = sequence_file[i].split('\t')[0]
             
@@ -601,23 +579,23 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
             del test_featuredata_all
             del test_targets   
         test_acc = float(corrected)/all_cases
-        print 'The test accuracy is %.5f' % (test_acc) 
+        print('The test accuracy is %.5f' % (test_acc))
         top1_acc = float(corrected_top1)/all_cases
         top5_acc = float(corrected_top5)/all_cases
         top10_acc = float(corrected_top10)/all_cases
         top15_acc = float(corrected_top15)/all_cases
         top20_acc = float(corrected_top20)/all_cases
-        print 'The top1_acc accuracy2 is %.5f' % (top1_acc)
-        print 'The top5_acc accuracy is %.5f' % (top5_acc)
-        print 'The top10_acc accuracy is %.5f' % (top10_acc)
-        print 'The top15_acc accuracy is %.5f' % (top15_acc)
-        print 'The top20_acc accuracy is %.5f' % (top20_acc)
+        print('The top1_acc accuracy2 is %.5f' % (top1_acc))
+        print('The top5_acc accuracy is %.5f' % (top5_acc))
+        print('The top10_acc accuracy is %.5f' % (top10_acc))
+        print('The top15_acc accuracy is %.5f' % (top15_acc))
+        print('The top20_acc accuracy is %.5f' % (top20_acc))
         
         sequence_file=open(val_list,'r').readlines() 
         #pdb_name='d1np7a1'
         all_cases=0
         corrected=0
-        for i in xrange(len(sequence_file)):
+        for i in range(len(sequence_file)):
             if sequence_file[i].find('Length') >0 :
                 #print "Skip line ",sequence_file[i]
                 continue
@@ -643,7 +621,7 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
             test_acc_best_top20=top20_acc
             print("Saved best weight to disk") 
             DLS2F_CNN.save_weights(model_weight_out_best)
-        print 'The val accuracy is %.5f' % (val_acc)     #   ---> 0.25499
+        print('The val accuracy is %.5f' % (val_acc))     #   ---> 0.25499
         
         if epoch < epoch_outside-5:
             continue
@@ -652,9 +630,9 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
         #pdb_name='d1np7a1'
         all_cases=0
         corrected=0
-        for i in xrange(len(sequence_file)):
+        for i in range(len(sequence_file)):
             if sequence_file[i].find('Length') >0 :
-                print "Skip line ",sequence_file[i]
+                print("Skip line ",sequence_file[i])
                 continue
             pdb_name = sequence_file[i].split('\t')[0]
             
@@ -668,18 +646,18 @@ def DLS2F_train_complex_win_filter_layer_opt(data_all_dict_padding,testdata_all_
                 corrected +=1   
         
         train_acc = float(corrected)/all_cases
-        print 'The training accuracy is %.5f' % (train_acc)
+        print('The training accuracy is %.5f' % (train_acc))
         if val_acc >= val_acc_best:
             train_acc_best = train_acc   
-    print "Training finished, best training acc = ",train_acc_best
-    print "Training finished, best testing acc = ",test_acc_best
-    print "Training finished, best validation acc = ",val_acc_best
-    print "Training finished, best top1 acc = ",test_acc_best_top1
-    print "Training finished, best top5 acc = ",test_acc_best_top5
-    print "Training finished, best top10 acc = ",test_acc_best_top10
-    print "Training finished, best top15 acc = ",test_acc_best_top15
-    print "Training finished, best top20 acc = ",test_acc_best_top20
-    print "Setting and saving best weights"
+    print("Training finished, best training acc = ",train_acc_best)
+    print("Training finished, best testing acc = ",test_acc_best)
+    print("Training finished, best validation acc = ",val_acc_best)
+    print("Training finished, best top1 acc = ",test_acc_best_top1)
+    print("Training finished, best top5 acc = ",test_acc_best_top5)
+    print("Training finished, best top10 acc = ",test_acc_best_top10)
+    print("Training finished, best top15 acc = ",test_acc_best_top15)
+    print("Training finished, best top20 acc = ",test_acc_best_top20)
+    print("Setting and saving best weights")
     DLS2F_CNN.load_weights(model_weight_out_best)
     DLS2F_CNN.save_weights(model_weight_out)
   
