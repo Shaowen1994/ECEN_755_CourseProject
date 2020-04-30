@@ -2,26 +2,26 @@ import sys
 import os
 from shutil import copyfile
 
-GLOBAL_PATH='/home/casp13/deepsf_3d/Github/test/DeepSF/';
+GLOBAL_PATH='/scratch/user/shaowen1994/Assignments/ECEN766_CourseProject/Seq_Fold';
 sys.path.insert(0, GLOBAL_PATH+'/lib')
 
 from library import load_train_test_data_padding_with_interval,K_max_pooling1d,DLS2F_train_complex_win_filter_layer_opt
 
-if len(sys.argv) != 12:
-          print 'please input the right parameters: interval'
-          sys.exit(1)
+#if len(sys.argv) != 12:
+#          print('please input the right parameters: interval')
+#          sys.exit(1)
 
-inter=int(sys.argv[1]) #15
-nb_filters=int(sys.argv[2]) #10
-nb_layers=int(sys.argv[3]) #10
-opt=sys.argv[4] #nadam
-filtsize=sys.argv[5] #6_10
-hidden_num=int(sys.argv[6]) #500
-ktop_node=int(sys.argv[7]) #30
-out_epoch=int(sys.argv[8]) #100
-in_epoch=int(sys.argv[9]) #3
-datadir = sys.argv[10]
-outputdir = sys.argv[11]
+inter=15
+nb_filters=10
+nb_layers=10
+opt='nadam'
+filtsize='6_10'
+hidden_num=500
+ktop_node=30
+out_epoch=50
+in_epoch=3
+datadir = '../Data/Datasets/For_Seq_Stru/'
+outputdir = '../Model/Seq_Fold/'
 
 train_datafile=datadir+'/Traindata.list'
 val_datafile=datadir+'/validation.list'
@@ -37,13 +37,13 @@ weightfile_best = CV_dir+'/model-train-weight-DLS2F-best-val.h5'
 
 if os.path.exists(modelfile):
   cmd1='rm  '+ modelfile
-  print "Running ", cmd1,"\n\n"
+  print("Running ", cmd1,"\n\n")
   os.system(cmd1)
   
 
 if os.path.exists(weightfile_best):
   cmd1='cp  '+ weightfile_best + '  ' + weightfile
-  print "Running ", cmd1,"\n\n"
+  print("Running ", cmd1,"\n\n")
   os.system(cmd1)
 
 
