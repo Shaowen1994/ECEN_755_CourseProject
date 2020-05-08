@@ -1,2 +1,5 @@
 Backup/
 Data/Datasets/pdb_origin/
+Data/Datasets/For_Seq_Stru/features*
+Seq_Fold/Terra*
+Seq_Fold/output*
