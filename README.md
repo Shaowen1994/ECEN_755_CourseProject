@@ -23,7 +23,7 @@ python DeepSF.py
 ```
 python DeepSF_ss.py
 ```
-* To train the DeepSF (AA + SS<sub>[pre]</sub>), run:
+* To train the DeepSF (AA + SS<sub>pre</sub>), run:
 ```
 python DeepSF_ssPre.py
 ```
