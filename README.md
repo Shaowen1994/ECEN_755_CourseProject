@@ -15,4 +15,19 @@ conda env create -f CrossModality.yml
 ```
 source activate CrossModality 
 ```
-** To
+* To train the DeepSF (AA), run:
+```
+python DeepSF.py
+```
+* To train the DeepSF (AA + SS), run:
+```
+python DeepSF.py
+```
+* To train the DeepSF (AA + SS<sup id="a1">[pre](#f1)</sup>pre), run:
+```
+python DeepSF.py
+```
+* To train the DeepSF (AA), run:
+```
+python DeepSF.py
+```
