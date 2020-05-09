@@ -10,7 +10,7 @@ conda env create -f CrossModality.yml
 ```
 
 ## Data
-In order to get the processed data for the fold prediction model, please following the steps below:
+In order to get the processed data for the fold prediction model, please follow the steps below:
 * Go to the ***Data/Scripts/*** directory.
 * Run the following scripts:
 '''
