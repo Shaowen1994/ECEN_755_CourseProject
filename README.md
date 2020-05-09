@@ -13,6 +13,6 @@ conda env create -f CrossModality.yml
 * Go to the ***Seq_Fold*** directory.
 * Load the environment:
 ```
-source activate CrossModality
-* To 
+source activate CrossModality 
 ```
+** To
