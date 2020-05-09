@@ -21,13 +21,13 @@ python DeepSF.py
 ```
 * To train the DeepSF (AA + SS), run:
 ```
-python DeepSF.py
+python DeepSF_ss.py
 ```
-* To train the DeepSF (AA + SS<sup id="a1">[pre](#f1)</sup>pre), run:
+* To train the DeepSF (AA + SS<sub>[pre]</sub>), run:
 ```
-python DeepSF.py
+python DeepSF_ssPre.py
 ```
-* To train the DeepSF (AA), run:
+* To train the DeepSF (AA + SS) with different portion of the real SS (portion = 25, 50 or 75):
 ```
-python DeepSF.py
+python DeepSF_mix.py  <portion>
 ```
