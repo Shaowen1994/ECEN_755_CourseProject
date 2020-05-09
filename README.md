@@ -18,8 +18,8 @@ mkdir ../Datasets/For_Seq_Stru/features
 mkdir ../Datasets/For_Seq_Stru/features_ss
 mkdir ../Datasets/For_Seq_Stru/features_pre
 '''
-* Open ***Data_Process.ipynb*** and run the steps after ***"Datasets for Seq-Fold models:"***.
-* To get the mixed data for DeepSF (AA + SS) with different portion of the real SS, run:
+* Open ***Data_Process.ipynb*** and follow the steps after ***"Datasets for Seq-Fold models:"***.
+* To get the mixed data for DeepSF (AA + SS) with different portions of the real SS, run:
 ```
 mkdir ../Datasets/For_Seq_Stru/features_mix_<portion>
 python SS_mix.py <portion>
@@ -44,7 +44,7 @@ python DeepSF_ss.py
 ```
 python DeepSF_ssPre.py
 ```
-* To train the DeepSF (AA + SS) with different portion of the real SS:
+* To train the DeepSF (AA + SS) with different portions of the real SS:
 ```
 python DeepSF_mix.py  <portion>
 ```
